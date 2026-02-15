@@ -1,30 +1,34 @@
-FROM php:7.4-fpm
+FROM php:7.4-apache
 
-# Install apache
-RUN apt-get update && apt-get install -y apache2 libapache2-mod-fcgid
+# Install dependency system
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libzip-dev \
+    zip \
+    && docker-php-ext-install pdo pdo_mysql zip
 
-# Enable proxy fcgi
-RUN a2enmod proxy_fcgi setenvif rewrite
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Install Laravel extension
-RUN docker-php-ext-install pdo pdo_mysql
+# Enable mod_rewrite
+RUN a2enmod rewrite
+
+# Set working dir
+WORKDIR /var/www/html
 
 # Copy project
-COPY . /var/www/html
+COPY . .
 
-# Permission
-RUN chown -R www-data:www-data /var/www/html
+# Install Laravel dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Set apache document root
-RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
 
-# Connect apache ke php-fpm
-RUN echo '<FilesMatch \.php$>\n\
-    SetHandler "proxy:fcgi://127.0.0.1:9000"\n\
-</FilesMatch>' > /etc/apache2/conf-available/php-fpm.conf
+# Set document root ke public
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 
-RUN a2enconf php-fpm
-
-EXPOSE 80
-
-CMD service apache2 start && php-fpm
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    /etc/apache2/sites-available/000-default.conf
