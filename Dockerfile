@@ -1,24 +1,25 @@
-FROM php:7.3-apache
+FROM php:7.4-apache
 
-# Install dependencies
-RUN apt-get update && apt-get install -y \
-    zip unzip git curl libpng-dev libonig-dev libxml2-dev
+# Install extensions yang dibutuhkan Laravel 5
+RUN docker-php-ext-install pdo pdo_mysql
 
-# Install extensions
-RUN docker-php-ext-install pdo pdo_mysql mbstring exif pcntl bcmath gd
-
-# Enable Apache mod_rewrite
+# Aktifkan mod_rewrite
 RUN a2enmod rewrite
 
+# HAPUS ini kalau ada:
+# RUN a2dismod mpm_event
+# RUN a2enmod mpm_prefork
+# (JANGAN set MPM manual)
+
 # Copy project
-COPY . /var/www/html/
+COPY . /var/www/html
 
-WORKDIR /var/www/html
+# Set permission
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html
 
-# Set Apache DocumentRoot ke public
+# Set document root ke public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/*.conf \
-    /etc/apache2/apache2.conf
 
-EXPOSE 80
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    /etc/apache2/sites-available/000-default.conf
