@@ -1,6 +1,6 @@
 FROM php:7.4-apache
 
-# Install dependency system
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -11,23 +11,21 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Enable mod_rewrite
+# Disable event MPM (WAJIB)
+RUN a2dismod mpm_event || true
+RUN a2enmod mpm_prefork
+
+# Enable rewrite
 RUN a2enmod rewrite
 
-# Set working dir
 WORKDIR /var/www/html
 
-# Copy project
 COPY . .
 
-# Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+RUN chown -R www-data:www-data /var/www/html
 
-# Set document root ke public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
