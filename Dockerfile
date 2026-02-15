@@ -1,20 +1,27 @@
 FROM php:7.4-apache
 
-# Install extension Laravel
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions untuk Laravel 5
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Pastikan hanya prefork yang aktif
+# Fix MPM conflict
 RUN a2dismod mpm_event || true
 RUN a2dismod mpm_worker || true
 RUN a2enmod mpm_prefork
-
-# Enable rewrite
 RUN a2enmod rewrite
 
 WORKDIR /var/www/html
+
+# Copy project
 COPY . .
 
-# Install composer dependencies
+# Install Composer
 RUN curl -sS https://getcomposer.org/installer | php \
     && php composer.phar install --no-dev --optimize-autoloader
 
