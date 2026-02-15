@@ -1,38 +1,37 @@
-FROM php:7.4-apache
+FROM php:7.4
 
-# Install system dependencies
+# Install apache manually
 RUN apt-get update && apt-get install -y \
+    apache2 \
     git \
     unzip \
     zip \
+    libapache2-mod-php \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions untuk Laravel 5
-RUN docker-php-ext-install pdo pdo_mysql
-
-# Fix MPM conflict
+# Enable prefork ONLY
 RUN a2dismod mpm_event || true
 RUN a2dismod mpm_worker || true
 RUN a2enmod mpm_prefork
 RUN a2enmod rewrite
 
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql
+
 WORKDIR /var/www/html
 
-# Copy project
 COPY . .
 
-# Install Composer
+# Install composer
 RUN curl -sS https://getcomposer.org/installer | php \
     && php composer.phar install --no-dev --optimize-autoloader
 
-# Set permission
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
 
-# Set document root ke public
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# Change Apache document root to public
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
 
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/sites-available/000-default.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' \
-    /etc/apache2/apache2.conf
+EXPOSE 80
+
+CMD ["apachectl", "-D", "FOREGROUND"]
