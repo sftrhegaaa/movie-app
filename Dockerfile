@@ -1,18 +1,11 @@
-FROM php:7.4
+FROM php:7.4-apache
 
-# Install apache manually
-RUN apt-get update && apt-get install -y \
-    apache2 \
-    git \
-    unzip \
-    zip \
-    libapache2-mod-php \
-    && rm -rf /var/lib/apt/lists/*
-
-# Enable prefork ONLY
+# Disable MPM lain dulu
 RUN a2dismod mpm_event || true
 RUN a2dismod mpm_worker || true
 RUN a2enmod mpm_prefork
+
+# Enable rewrite
 RUN a2enmod rewrite
 
 # Install PHP extensions
@@ -22,16 +15,17 @@ WORKDIR /var/www/html
 
 COPY . .
 
-# Install composer
-RUN curl -sS https://getcomposer.org/installer | php \
-    && php composer.phar install --no-dev --optimize-autoloader
+# Install composer dependencies
+RUN apt-get update && apt-get install -y git unzip zip \
+    && curl -sS https://getcomposer.org/installer | php \
+    && php composer.phar install --no-dev --optimize-autoloader \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set permissions
+# Set document root ke public
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' \
+    /etc/apache2/sites-available/000-default.conf
+
 RUN chown -R www-data:www-data /var/www/html
 
-# Change Apache document root to public
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
 EXPOSE 80
-
-CMD ["apachectl", "-D", "FOREGROUND"]
