@@ -1,5 +1,9 @@
 FROM php:7.4-apache
 
+
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.load
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.conf
+
 # Install extensions yang dibutuhkan Laravel 5
 RUN docker-php-ext-install pdo pdo_mysql
 
