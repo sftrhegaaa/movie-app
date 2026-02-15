@@ -1,24 +1,22 @@
 FROM php:7.4-apache
 
+# Paksa disable semua MPM dulu
+RUN a2dismod mpm_event || true
+RUN a2dismod mpm_worker || true
 
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.load
-RUN rm -f /etc/apache2/mods-enabled/mpm_event.conf
+# Aktifkan prefork (yang benar untuk PHP)
+RUN a2enmod mpm_prefork
 
-# Install extensions yang dibutuhkan Laravel 5
+# Install extension Laravel
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Aktifkan mod_rewrite
+# Enable rewrite
 RUN a2enmod rewrite
-
-# HAPUS ini kalau ada:
-# RUN a2dismod mpm_event
-# RUN a2enmod mpm_prefork
-# (JANGAN set MPM manual)
 
 # Copy project
 COPY . /var/www/html
 
-# Set permission
+# Permission
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
