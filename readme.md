@@ -4,6 +4,7 @@
 - Composer
 - PHPUnit
 - laravel/tinker
+- Apache
 
 ## Development Environment
 
