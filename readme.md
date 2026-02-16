@@ -1,10 +1,9 @@
 ## Library
 
-- Laravel 5
-- Composer dependencies (vendor)
-- MySQL
-- Blade Template Engine
-- Dockerfile
+- Laravel 5.8
+- Composer
+- PHPUnit
+- laravel/tinker
 
 ## Development Environment
 
